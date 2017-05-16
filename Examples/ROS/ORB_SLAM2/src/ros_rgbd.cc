@@ -34,6 +34,11 @@
 
 #include"../../../include/System.h"
 
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+#include <Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
+
 using namespace std;
 
 class ImageGrabber
@@ -109,7 +114,18 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         return;
     }
 
-    mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
+    cv::Mat Tcw;
+    Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
+    Eigen::Matrix<float, 4, 4> T;
+    cv2eigen(Tcw, T);
+    //Eigen::Matrix<float, 3, 3> rotation_matrix = T.topLeftCorner(3,3);
+    Eigen::Matrix3f rotation_matrix = T.topLeftCorner(3,3);
+    Eigen::Quaternionf quaternion = Eigen::Quaternionf ( rotation_matrix );
+    Eigen::Vector3f v_transpose = T.topRightCorner(3,1);
+    cout<<"quaternion = \n"<<quaternion.coeffs() <<endl;
+    //cout<< v_transpose <<endl;
+    //cout << T << endl;
+    //cout<< rotation_matrix <<endl;
 }
 
 

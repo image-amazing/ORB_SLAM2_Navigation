@@ -36,8 +36,8 @@
 #include<iostream>
 
 #include<mutex>
-#include <Eigen/Core>
-#include <opencv2/core/eigen.hpp>
+//#include <Eigen/Core>
+//#include <opencv2/core/eigen.hpp>
 
 using namespace std;
 
@@ -231,16 +231,19 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     mCurrentFrame = Frame(mImGray,imDepth,timestamp,mpORBextractorLeft,mpORBVocabulary,mK,mDistCoef,mbf,mThDepth);
 
     Track();
-/*
+    /*
     cout<<"Tcw : "<<mCurrentFrame.mTcw.at<float>(0,0)<<"    "<<mCurrentFrame.mTcw.at<float>(0,1)<<"    "<<mCurrentFrame.mTcw.at<float>(0,2)<<"    "<<mCurrentFrame.mTcw.at<float>(0,3)<<endl
           <<"    "<<mCurrentFrame.mTcw.at<float>(1,0)<<"    "<<mCurrentFrame.mTcw.at<float>(1,1)<<"    "<<mCurrentFrame.mTcw.at<float>(1,2)<<"    "<<mCurrentFrame.mTcw.at<float>(1,3)<<endl
           <<"    "<<mCurrentFrame.mTcw.at<float>(2,0)<<"    "<<mCurrentFrame.mTcw.at<float>(2,1)<<"    "<<mCurrentFrame.mTcw.at<float>(2,2)<<"    "<<mCurrentFrame.mTcw.at<float>(2,3)<<endl
           <<"    "<<mCurrentFrame.mTcw.at<float>(3,0)<<"    "<<mCurrentFrame.mTcw.at<float>(3,1)<<"    "<<mCurrentFrame.mTcw.at<float>(3,2)<<"    "<<mCurrentFrame.mTcw.at<float>(3,3)<<endl
           <<endl;
- */
+    */
+    /*
     Eigen::Matrix<float, 4, 4> b;
-    cv2eigen(mCurrentFrame.mTcw, b);
-    cout << b << endl;
+    cv2eigen(mCurrentFrame.mTcw, T);
+    cout << T << endl;
+    */
+
     return mCurrentFrame.mTcw.clone();
 }
 
