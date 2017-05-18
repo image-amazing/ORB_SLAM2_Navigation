@@ -34,18 +34,26 @@
 
 #include"../../../include/System.h"
 
+//----------------------------------------------------------------
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <Eigen/Dense>
 #include <opencv2/core/eigen.hpp>
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
 
 using namespace std;
 
 class ImageGrabber
 {
 public:
+    Eigen::Quaternionf quaternion;  //Pose
+    Eigen::Vector3f v_transpose; //Orientation
+
+public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
 
+    //void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD,Eigen::Quaternionf& quaternion,Eigen::Vector3f& v_transpose);
     void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
 
     ORB_SLAM2::System* mpSLAM;
@@ -75,8 +83,44 @@ int main(int argc, char **argv)
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
+    
+    ros::Publisher orb_odom_pub = nh.advertise<nav_msgs::Odometry>("orb_odom", 500);
+    nav_msgs::Odometry orb_odom;
+    ros::Time current_time;
 
-    ros::spin();
+    ros::Rate loop_rate(30);
+    while(ros::ok())
+    {
+        current_time = ros::Time::now();
+        orb_odom.header.stamp = current_time;
+        orb_odom.header.frame_id = "VO";
+
+        //set the position and orientation
+        orb_odom.pose.pose.position.x = igb.v_transpose(0);
+        orb_odom.pose.pose.position.y = igb.v_transpose(1);
+        orb_odom.pose.pose.position.z = igb.v_transpose(2);
+        orb_odom.pose.pose.orientation.w = igb.quaternion.w();
+        orb_odom.pose.pose.orientation.x = igb.quaternion.x();
+        orb_odom.pose.pose.orientation.y = igb.quaternion.y();
+        orb_odom.pose.pose.orientation.z = igb.quaternion.z();
+        orb_odom_pub.publish(orb_odom);
+
+
+        //cout<< "quaternion.w = \n" << igb.quaternion.w() <<endl;
+        //orb_odom.pose.pose.orientation.w = igb.quaternion.w;
+        //orb_odom.pose.pose.orientation = odom_quat;
+        //cout<< "quaternion = \n" << igb.quaternion.coeffs() <<endl;
+        
+        //cout<< "v_transpose = \n" << orb_odom.pose.pose.position.x <<endl;
+        //cout<< "v_transpose = \n" << igb.v_transpose <<endl;        
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+
+    //cout<< "quaternion = \n" << igb.quaternion.coeffs() <<endl;
+    //cout<< "v_transpose = \n" << igb.v_transpose <<endl;
+
+    //ros::spin();
 
     // Stop all threads
     SLAM.Shutdown();
@@ -120,9 +164,13 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     cv2eigen(Tcw, T);
     //Eigen::Matrix<float, 3, 3> rotation_matrix = T.topLeftCorner(3,3);
     Eigen::Matrix3f rotation_matrix = T.topLeftCorner(3,3);
-    Eigen::Quaternionf quaternion = Eigen::Quaternionf ( rotation_matrix );
-    Eigen::Vector3f v_transpose = T.topRightCorner(3,1);
-    cout<<"quaternion = \n"<<quaternion.coeffs() <<endl;
+    this->quaternion = Eigen::Quaternionf ( rotation_matrix );
+    this->v_transpose = T.topRightCorner(3,1);
+
+    //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
+    //cout<< "v_transpose = \n" << this->v_transpose <<endl;
+
+    //cout<<"quaternion = \n"<<quaternion.coeffs() <<endl;
     //cout<< v_transpose <<endl;
     //cout << T << endl;
     //cout<< rotation_matrix <<endl;
