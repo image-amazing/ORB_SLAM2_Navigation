@@ -49,6 +49,7 @@ class ImageGrabber
 public:
     Eigen::Quaternionf quaternion;  //Pose
     Eigen::Vector3f v_transpose; //Orientation
+    Eigen::Vector3f euler_angle;
 
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
@@ -162,10 +163,19 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
     Eigen::Matrix<float, 4, 4> T;
     cv2eigen(Tcw, T);
+
+    T = T.inverse();
+    Eigen::Matrix<float, 4, 4> Tco;
+    Tco << 0,0,1,0,-1,0,0,0,0,-1,0,0,0,0,0,1;
+    //T = Tco * T;
+    //T = T.inverse();
     //Eigen::Matrix<float, 3, 3> rotation_matrix = T.topLeftCorner(3,3);
     Eigen::Matrix3f rotation_matrix = T.topLeftCorner(3,3);
     this->quaternion = Eigen::Quaternionf ( rotation_matrix );
     this->v_transpose = T.topRightCorner(3,1);
+    this->euler_angle = rotation_matrix.eulerAngles(2,1,0);
+    cout<< "euler_angles = "<<this->euler_angle<<endl;
+
 
     //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
     //cout<< "v_transpose = \n" << this->v_transpose <<endl;

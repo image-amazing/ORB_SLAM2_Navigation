@@ -1,5 +1,7 @@
 <launch> 
   <param name="orb_use_viewer" value="false"/> 
+  
+
   <node pkg="ORB_SLAM2" type="RGBD" name="ORB_SLAM2" 
         args="/home/di/zhudi/V-SLAM/ORB_SLAM2/Vocabulary/ORBvoc.txt 
          /home/di/zhudi/V-SLAM/ORB_SLAM2/Examples/RGB-D/TUM1.yaml" cwd="node" output="screen"/> 
