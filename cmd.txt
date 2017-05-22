@@ -1,0 +1,5 @@
+roslaunch realsense_camera r200_custom.launch
+---------------------------------------------------------------------
+export ROS_PACKAGE_PATH=${ROS_PACKAGE_PATH}:/home/robot8/zhudi/V-SLAM/ORB_SLAM2/Examples/ROS
+rosrun ORB_SLAM2 RGBD Vocabulary/ORBvoc.txt Examples/RGB-D/Realsense.yaml /camera/rgb/image_raw:=/camera/color/image_raw /camera/depth_registered/image_raw:=/camera/depth/image_raw
+
