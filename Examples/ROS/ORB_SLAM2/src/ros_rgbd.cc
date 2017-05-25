@@ -206,7 +206,10 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
 
     T = Tcp*T*Tpc;
     Eigen::Matrix<double, 3, 3> R = T.topLeftCorner(3,3);
-    this->quaternion = Eigen::Quaterniond ( R );
+    //this->quaternion = Eigen::Quaterniond ( R );
+    Eigen::Quaterniond quaternion_1 = Eigen::Quaterniond ( R );
+    quaternion_1.normalize();
+    this->quaternion = quaternion_1;
     //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
 
     this->v_transpose = T.topRightCorner(3,1);
