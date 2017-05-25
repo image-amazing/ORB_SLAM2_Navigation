@@ -4,7 +4,7 @@
 
   <node pkg="ORB_SLAM2" type="RGBD" name="ORB_SLAM2" 
         args="/home/di/zhudi/V-SLAM/ORB_SLAM2/Vocabulary/ORBvoc.txt 
-         /home/di/zhudi/V-SLAM/ORB_SLAM2/Examples/RGB-D/TUM1.yaml" cwd="node" output="screen"/> 
+         /home/di/zhudi/V-SLAM/ORB_SLAM2/Examples/RGB-D/K1.yaml" cwd="node" output="screen"/> 
 
   <include file="$(find freenect_launch)/launch/freenect.launch"> 
     <!-- use device registration --> 
