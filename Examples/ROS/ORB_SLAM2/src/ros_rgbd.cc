@@ -100,12 +100,13 @@ int main(int argc, char **argv)
         orb_odom.pose.pose.position.x = igb.v_transpose(0);
         orb_odom.pose.pose.position.y = igb.v_transpose(1);
         orb_odom.pose.pose.position.z = igb.v_transpose(2);
+
+        // Any unit transformation?
         orb_odom.pose.pose.orientation.w = igb.quaternion.w();
         orb_odom.pose.pose.orientation.x = igb.quaternion.x();
         orb_odom.pose.pose.orientation.y = igb.quaternion.y();
         orb_odom.pose.pose.orientation.z = igb.quaternion.z();
         orb_odom_pub.publish(orb_odom);
-
 
         //cout<< "quaternion.w = \n" << igb.quaternion.w() <<endl;
         //orb_odom.pose.pose.orientation.w = igb.quaternion.w;
@@ -164,22 +165,32 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     Eigen::Matrix<float, 4, 4> T;
     cv2eigen(Tcw, T);
 
-    T = T.inverse();
-    Eigen::Matrix<float, 4, 4> Tco;
-    Tco << 0,0,1,0,-1,0,0,0,0,-1,0,0,0,0,0,1;
-    //T = Tco * T;
-    //T = T.inverse();
-    //Eigen::Matrix<float, 3, 3> rotation_matrix = T.topLeftCorner(3,3);
-    Eigen::Matrix3f rotation_matrix = T.topLeftCorner(3,3);
-    this->quaternion = Eigen::Quaternionf ( rotation_matrix );
+    T = T.inverse(); //Twc
+    
+    Eigen::Matrix<float, 4, 4> Tcp;
+    Tcp << 0,0,1,0,-1,0,0,0,0,-1,0,0,0,0,0,1;
+
+    Eigen::Matrix<float, 4, 4> Tpc;
+    Tpc << 0,-1,0,0,0,0,-1,0,1,0,0,0,0,0,0,1;
+
+    //Eigen::Matrix<float, 3, 3> Rab = T.topLeftCorner(3,3);
+    //Eigen::Matrix<float, 3, 3> R;
+    //R = Rcp*Rab*Rpc;
+
+    T = Tcp*T*Tpc;
+    Eigen::Matrix<float, 3, 3> R = T.topLeftCorner(3,3);
+    this->quaternion = Eigen::Quaternionf ( R );
+    //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
+
     this->v_transpose = T.topRightCorner(3,1);
-    this->euler_angle = rotation_matrix.eulerAngles(2,1,0);
-    cout<< "euler_angles = "<<this->euler_angle<<endl;
-
-
+    
+    //this->euler_angle = R.eulerAngles(2,1,0);
+    //cout<<"yaw pitch roll = "<<euler_angle.transpose()<<endl;
+    //cout<< "euler_angles = "<<this->euler_angle<<endl;
+    //Eigen::AngleAxisf angleAxis(rotation_matrix);
+    //cout<< "angleAxis = "<<angleAxis.matrix()<<endl;
     //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
     //cout<< "v_transpose = \n" << this->v_transpose <<endl;
-
     //cout<<"quaternion = \n"<<quaternion.coeffs() <<endl;
     //cout<< v_transpose <<endl;
     //cout << T << endl;
