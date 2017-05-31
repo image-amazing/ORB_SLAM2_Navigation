@@ -47,9 +47,9 @@ using namespace std;
 class ImageGrabber
 {
 public:
-    Eigen::Quaterniond quaternion;  //Pose
-    Eigen::Vector3d v_transpose; //Orientation
-    Eigen::Vector3d euler_angle;
+    Eigen::Quaterniond quaternion;  //Orientation
+    Eigen::Vector3d v_transpose; //Pose
+    Eigen::Vector3d euler_angle; //Euler
 
 public:
     ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
     message_filters::Synchronizer<sync_pol> sync(sync_pol(10), rgb_sub,depth_sub);
     sync.registerCallback(boost::bind(&ImageGrabber::GrabRGBD,&igb,_1,_2));
     
-    ros::Publisher orb_odom_pub = nh.advertise<nav_msgs::Odometry>("orb_odom", 500);
+    ros::Publisher orb_odom_pub = nh.advertise<nav_msgs::Odometry>("vo", 500);
     tf::TransformBroadcaster odom_broadcaster;
     nav_msgs::Odometry orb_odom;
     ros::Time current_time;
@@ -106,9 +106,17 @@ int main(int argc, char **argv)
         orb_odom.pose.pose.orientation.x = igb.quaternion.x();
         orb_odom.pose.pose.orientation.y = igb.quaternion.y();
         orb_odom.pose.pose.orientation.z = igb.quaternion.z();
+
+        orb_odom.pose.covariance[0] = 0.1;
+        orb_odom.pose.covariance[7] = 0.1;
+        orb_odom.pose.covariance[14] = 0.1;
+        orb_odom.pose.covariance[21] = 0.1;
+        orb_odom.pose.covariance[28] = 0.1;
+        orb_odom.pose.covariance[35] = 0.1;
+
         orb_odom_pub.publish(orb_odom);
 
-        //first, we'll publish the transform over tf
+        //First, we'll publish the transform over tf
         geometry_msgs::TransformStamped odom_trans;
         current_time = ros::Time::now();
         odom_trans.header.stamp = current_time;
@@ -118,12 +126,7 @@ int main(int argc, char **argv)
         odom_trans.transform.translation.x = orb_odom.pose.pose.position.x;
         odom_trans.transform.translation.y = orb_odom.pose.pose.position.y;
         odom_trans.transform.translation.z = orb_odom.pose.pose.position.z;
-        //geometry_msgs::Quaternion odom_quat = geometry_msgs::Quaternion::createQuaternionMsg(igb.quaternion.x(),igb.quaternion.y(),igb.quaternion.z(),igb.quaternion.w());
-        //double roll,pitch,yaw;
-        //yaw = igb.euler_angle(0,0);
-        //roll = double();
-        //geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromRollPitchYaw(euler_angle.transpose());;
-        //geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(yaw);
+
         geometry_msgs::Quaternion odom_quat;
         odom_quat.x = igb.quaternion.x();
         odom_quat.y = igb.quaternion.y();
@@ -131,23 +134,11 @@ int main(int argc, char **argv)
         odom_quat.w = igb.quaternion.w();
         odom_trans.transform.rotation = odom_quat;
         
-        //odom_trans.transform.rotation = odom_quat;
-        //send the transform
-        odom_broadcaster.sendTransform(odom_trans);
-
-        //cout<< "quaternion.w = \n" << igb.quaternion.w() <<endl;
-        //orb_odom.pose.pose.orientation.w = igb.quaternion.w;
-        //orb_odom.pose.pose.orientation = odom_quat;
-        //cout<< "quaternion = \n" << igb.quaternion.coeffs() <<endl;
+        //odom_broadcaster.sendTransform(odom_trans);
         
-        //cout<< "v_transpose = \n" << orb_odom.pose.pose.position.x <<endl;
-        //cout<< "v_transpose = \n" << igb.v_transpose <<endl;        
         ros::spinOnce();
         loop_rate.sleep();
     }
-
-    //cout<< "quaternion = \n" << igb.quaternion.coeffs() <<endl;
-    //cout<< "v_transpose = \n" << igb.v_transpose <<endl;
 
     //ros::spin();
 
@@ -200,31 +191,17 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     Eigen::Matrix<double, 4, 4> Tpc;
     Tpc << 0,-1,0,0,0,0,-1,0,1,0,0,0,0,0,0,1;
 
-    //Eigen::Matrix<float, 3, 3> Rab = T.topLeftCorner(3,3);
-    //Eigen::Matrix<float, 3, 3> R;
-    //R = Rcp*Rab*Rpc;
-
     T = Tcp*T*Tpc;
     Eigen::Matrix<double, 3, 3> R = T.topLeftCorner(3,3);
-    //this->quaternion = Eigen::Quaterniond ( R );
     Eigen::Quaterniond quaternion_1 = Eigen::Quaterniond ( R );
     quaternion_1.normalize();
     this->quaternion = quaternion_1;
-    //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
-
     this->v_transpose = T.topRightCorner(3,1);
-    
     this->euler_angle = R.eulerAngles(2,1,0);
+    //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
     //cout<<"yaw pitch roll = "<<euler_angle.transpose()<<endl;
     //cout<< "euler_angles = "<<this->euler_angle<<endl;
-    //Eigen::AngleAxisf angleAxis(rotation_matrix);
-    //cout<< "angleAxis = "<<angleAxis.matrix()<<endl;
-    //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
     //cout<< "v_transpose = \n" << this->v_transpose <<endl;
-    //cout<<"quaternion = \n"<<quaternion.coeffs() <<endl;
-    //cout<< v_transpose <<endl;
-    //cout << T << endl;
-    //cout<< rotation_matrix <<endl;
 }
 
 
