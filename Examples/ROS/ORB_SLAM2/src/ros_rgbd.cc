@@ -107,12 +107,12 @@ int main(int argc, char **argv)
         orb_odom.pose.pose.orientation.y = igb.quaternion.y();
         orb_odom.pose.pose.orientation.z = igb.quaternion.z();
 
-        orb_odom.pose.covariance[0] = 0.1;
-        orb_odom.pose.covariance[7] = 0.1;
-        orb_odom.pose.covariance[14] = 0.1;
-        orb_odom.pose.covariance[21] = 0.1;
-        orb_odom.pose.covariance[28] = 0.1;
-        orb_odom.pose.covariance[35] = 0.1;
+        orb_odom.pose.covariance[0] = 0.01;
+        orb_odom.pose.covariance[7] = 0.01;
+        orb_odom.pose.covariance[14] = 0.01;
+        orb_odom.pose.covariance[21] = 0.01;
+        orb_odom.pose.covariance[28] = 0.01;
+        orb_odom.pose.covariance[35] = 0.01;
 
         orb_odom_pub.publish(orb_odom);
 
