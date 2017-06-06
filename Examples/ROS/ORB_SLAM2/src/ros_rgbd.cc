@@ -113,15 +113,17 @@ int main(int argc, char **argv)
         orb_odom.pose.covariance[21] = 0.01;
         orb_odom.pose.covariance[28] = 0.01;
         orb_odom.pose.covariance[35] = 0.01;
-
-        orb_odom_pub.publish(orb_odom);
+        if (SLAM.GetTrackingState() == 2) {
+            orb_odom_pub.publish(orb_odom);
+        }
+        //orb_odom_pub.publish(orb_odom);
 
         //First, we'll publish the transform over tf
         geometry_msgs::TransformStamped odom_trans;
         current_time = ros::Time::now();
         odom_trans.header.stamp = current_time;
         odom_trans.header.frame_id = "odom";
-        odom_trans.child_frame_id = "camera_link";
+        odom_trans.child_frame_id = "base_footprint";
 
         odom_trans.transform.translation.x = orb_odom.pose.pose.position.x;
         odom_trans.transform.translation.y = orb_odom.pose.pose.position.y;
@@ -134,6 +136,10 @@ int main(int argc, char **argv)
         odom_quat.w = igb.quaternion.w();
         odom_trans.transform.rotation = odom_quat;
         
+        if (SLAM.GetTrackingState() == 2) {
+            odom_broadcaster.sendTransform(odom_trans);
+        }
+
         //odom_broadcaster.sendTransform(odom_trans);
         
         ros::spinOnce();
