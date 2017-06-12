@@ -41,24 +41,33 @@
 #include <opencv2/core/eigen.hpp>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
+#include "robot_odom/service.h"
 
 using namespace std;
 
 class ImageGrabber
 {
+
 public:
+    //ros::NodeHandle _node_handle;
+    ros::ServiceClient _client;
     Eigen::Quaterniond quaternion;  //Orientation
     Eigen::Vector3d v_transpose; //Pose
     Eigen::Vector3d euler_angle; //Euler
+    //robot_odom::service srv;
 
 public:
-    ImageGrabber(ORB_SLAM2::System* pSLAM):mpSLAM(pSLAM){}
+    ImageGrabber(ORB_SLAM2::System* pSLAM, ros::ServiceClient& client):mpSLAM(pSLAM),_client(client){}
 
     //void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD,Eigen::Quaternionf& quaternion,Eigen::Vector3f& v_transpose);
     void GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD);
 
     ORB_SLAM2::System* mpSLAM;
 };
+
+robot_odom::service srv;
+nav_msgs::Odometry odom_reloc;
+bool reloc = false;
 
 int main(int argc, char **argv)
 {
@@ -75,11 +84,11 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM2::System SLAM(argv[1],argv[2],ORB_SLAM2::System::RGBD,true);
 
-    ImageGrabber igb(&SLAM);
-
     ros::NodeHandle nh;
-    //ros::ServiceClient client = nh.ServiceClient<>
+    ros::ServiceClient client = nh.serviceClient<robot_odom::service>("update_odom_from_relocalization");
 
+    ImageGrabber igb(&SLAM, client);
+    
     message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
     typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::Image> sync_pol;
@@ -90,10 +99,12 @@ int main(int argc, char **argv)
     tf::TransformBroadcaster odom_broadcaster;
     nav_msgs::Odometry orb_odom;
     ros::Time current_time;
+    bool ok;
 
     ros::Rate loop_rate(30);
     while(ros::ok())
     {
+
         current_time = ros::Time::now();
         orb_odom.header.stamp = current_time;
         orb_odom.header.frame_id = "odom";
@@ -162,6 +173,7 @@ int main(int argc, char **argv)
 
 void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const sensor_msgs::ImageConstPtr& msgD)
 {
+    // reloc = false;
     // Copy the ros image message to cv::Mat.
     cv_bridge::CvImageConstPtr cv_ptrRGB;
     try
@@ -188,8 +200,34 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     cv::Mat Tcw;
     Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
     if( mpSLAM->GetRelocalization() )
-    {
-        //nh
+    {       
+        geometry_msgs::Quaternion odom_quat;
+        //ROS_INFO("yaw=%f",odometry_th);
+        odom_quat = tf::createQuaternionMsgFromYaw(0);
+        ros::Time current_time;
+        current_time = ros::Time::now();
+        odom_reloc.header.stamp = current_time;
+        odom_reloc.header.frame_id = "odom";
+        odom_reloc.child_frame_id = "base_footprint";
+        // position
+        odom_reloc.pose.pose.position.x = 0.0;
+        odom_reloc.pose.pose.position.y = 0.0;
+        odom_reloc.pose.pose.position.z = 0.0;
+        odom_reloc.pose.pose.orientation = odom_quat;
+
+        odom_reloc.pose.covariance[0] = 0.1;
+        odom_reloc.pose.covariance[7] = 0.1;
+        odom_reloc.pose.covariance[14] = 999999;
+        odom_reloc.pose.covariance[21] = 999999;
+        odom_reloc.pose.covariance[28] = 999999;
+        odom_reloc.pose.covariance[35] = 0.01;
+        srv.request.odom_1 = odom_reloc;
+        //reloc = true;
+        bool ok = this->_client.call(srv);
+        //reloc = false;
+        if (ok)
+            ROS_INFO("Call update_odom_from_relocalization service");
+
     }
 
     Eigen::Matrix<double, 4, 4> T;
