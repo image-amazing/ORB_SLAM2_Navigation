@@ -489,4 +489,12 @@ vector<cv::KeyPoint> System::GetTrackedKeyPointsUn()
     return mTrackedKeyPointsUn;
 }
 
+bool System::GetRelocalization()
+{
+    if(this->mpTracker->mbRelocalization)
+        return true;
+    else
+        return false;
+}
+
 } //namespace ORB_SLAM

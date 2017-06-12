@@ -78,6 +78,7 @@ int main(int argc, char **argv)
     ImageGrabber igb(&SLAM);
 
     ros::NodeHandle nh;
+    //ros::ServiceClient client = nh.ServiceClient<>
 
     message_filters::Subscriber<sensor_msgs::Image> rgb_sub(nh, "/camera/rgb/image_raw", 1);
     message_filters::Subscriber<sensor_msgs::Image> depth_sub(nh, "camera/depth_registered/image_raw", 1);
@@ -186,6 +187,11 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
 
     cv::Mat Tcw;
     Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
+    if( mpSLAM->GetRelocalization() )
+    {
+        //nh
+    }
+
     Eigen::Matrix<double, 4, 4> T;
     cv2eigen(Tcw, T);
 

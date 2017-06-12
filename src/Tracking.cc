@@ -47,7 +47,7 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbRelocalization(0)
 {
     // Load camera parameters from settings file
 
@@ -279,6 +279,7 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 
 void Tracking::Track()
 {
+    mbRelocalization = false;
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -331,6 +332,8 @@ void Tracking::Track()
             else
             {
                 bOK = Relocalization();
+                if(bOK) 
+                    mbRelocalization = true;
             }
         }
         else
@@ -340,6 +343,8 @@ void Tracking::Track()
             if(mState==LOST)
             {
                 bOK = Relocalization();
+                if(bOK) 
+                    mbRelocalization = true;
             }
             else
             {
@@ -377,6 +382,8 @@ void Tracking::Track()
                         TcwMM = mCurrentFrame.mTcw.clone();
                     }
                     bOKReloc = Relocalization();
+                    if(bOKReloc) 
+                        mbRelocalization = true;
 
                     if(bOKMM && !bOKReloc)
                     {
