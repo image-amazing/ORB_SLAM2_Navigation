@@ -137,7 +137,7 @@ int main(int argc, char **argv)
         odom_trans.transform.rotation = odom_quat;
         
         if (SLAM.GetTrackingState() == 2) {
-            odom_broadcaster.sendTransform(odom_trans);
+            //odom_broadcaster.sendTransform(odom_trans);
         }
 
         //odom_broadcaster.sendTransform(odom_trans);
