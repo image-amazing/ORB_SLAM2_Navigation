@@ -41,7 +41,7 @@
 #include <opencv2/core/eigen.hpp>
 #include <tf/transform_broadcaster.h>
 #include <nav_msgs/Odometry.h>
-#include "robot_odom/service.h"
+#include "robot_odom/service.h" //setup open_robot first
 
 using namespace std;
 
@@ -104,7 +104,6 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(30);
     while(ros::ok())
     {
-
         current_time = ros::Time::now();
         orb_odom.header.stamp = current_time;
         orb_odom.header.frame_id = "odom";
@@ -119,12 +118,12 @@ int main(int argc, char **argv)
         orb_odom.pose.pose.orientation.y = igb.quaternion.y();
         orb_odom.pose.pose.orientation.z = igb.quaternion.z();
 
-        orb_odom.pose.covariance[0] = 0.01;
-        orb_odom.pose.covariance[7] = 0.01;
-        orb_odom.pose.covariance[14] = 0.01;
-        orb_odom.pose.covariance[21] = 0.01;
-        orb_odom.pose.covariance[28] = 0.01;
-        orb_odom.pose.covariance[35] = 0.01;
+        orb_odom.pose.covariance[0] = 0.001;
+        orb_odom.pose.covariance[7] = 0.001;
+        orb_odom.pose.covariance[14] = 0.001;
+        orb_odom.pose.covariance[21] = 0.001;
+        orb_odom.pose.covariance[28] = 0.001;
+        orb_odom.pose.covariance[35] = 0.001;
         if (SLAM.GetTrackingState() == 2) {
             orb_odom_pub.publish(orb_odom);
         }
@@ -199,36 +198,6 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
 
     cv::Mat Tcw;
     Tcw = mpSLAM->TrackRGBD(cv_ptrRGB->image,cv_ptrD->image,cv_ptrRGB->header.stamp.toSec());
-    if( mpSLAM->GetRelocalization() )
-    {       
-        geometry_msgs::Quaternion odom_quat;
-        //ROS_INFO("yaw=%f",odometry_th);
-        odom_quat = tf::createQuaternionMsgFromYaw(0);
-        ros::Time current_time;
-        current_time = ros::Time::now();
-        odom_reloc.header.stamp = current_time;
-        odom_reloc.header.frame_id = "odom";
-        odom_reloc.child_frame_id = "base_footprint";
-        // position
-        odom_reloc.pose.pose.position.x = 0.0;
-        odom_reloc.pose.pose.position.y = 0.0;
-        odom_reloc.pose.pose.position.z = 0.0;
-        odom_reloc.pose.pose.orientation = odom_quat;
-
-        odom_reloc.pose.covariance[0] = 0.1;
-        odom_reloc.pose.covariance[7] = 0.1;
-        odom_reloc.pose.covariance[14] = 999999;
-        odom_reloc.pose.covariance[21] = 999999;
-        odom_reloc.pose.covariance[28] = 999999;
-        odom_reloc.pose.covariance[35] = 0.01;
-        srv.request.odom_1 = odom_reloc;
-        //reloc = true;
-        bool ok = this->_client.call(srv);
-        //reloc = false;
-        if (ok)
-            ROS_INFO("Call update_odom_from_relocalization service");
-
-    }
 
     Eigen::Matrix<double, 4, 4> T;
     cv2eigen(Tcw, T);
@@ -248,6 +217,43 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     this->quaternion = quaternion_1;
     this->v_transpose = T.topRightCorner(3,1);
     this->euler_angle = R.eulerAngles(2,1,0);
+
+    if( mpSLAM->GetRelocalization() )
+    {       
+        cout<<"Relocalization Happened!"<<endl;
+        
+        ros::Time current_time;
+        current_time = ros::Time::now();
+        odom_reloc.header.stamp = current_time;
+        odom_reloc.header.frame_id = "odom";
+        odom_reloc.child_frame_id = "base_footprint";
+        // position
+        odom_reloc.pose.pose.position.x = this->v_transpose(0);
+        odom_reloc.pose.pose.position.y = this->v_transpose(1);
+        odom_reloc.pose.pose.position.z = this->v_transpose(2);
+
+        odom_reloc.pose.pose.orientation.w = this->quaternion.w();
+        odom_reloc.pose.pose.orientation.x = this->quaternion.x();
+        odom_reloc.pose.pose.orientation.y = this->quaternion.y();
+        odom_reloc.pose.pose.orientation.z = this->quaternion.z();
+
+        odom_reloc.pose.covariance[0] = 0.01;
+        odom_reloc.pose.covariance[7] = 0.01;
+        odom_reloc.pose.covariance[14] = 0.01;
+        odom_reloc.pose.covariance[21] = 0.01;
+        odom_reloc.pose.covariance[28] = 0.01;
+        odom_reloc.pose.covariance[35] = 0.01;
+        
+        srv.request.odom_1 = odom_reloc;
+        //reloc = true;
+        bool ok = this->_client.call(srv);
+        //reloc = false;
+        if (ok)
+            ROS_INFO("Called update_odom_from_relocalization service !");
+        else
+            ROS_INFO("Cannot called update_odom_from_relocalization service !");
+    }
+
     //cout<< "quaternion = \n" << this->quaternion.coeffs() <<endl;
     //cout<<"yaw pitch roll = "<<euler_angle.transpose()<<endl;
     //cout<< "euler_angles = "<<this->euler_angle<<endl;
