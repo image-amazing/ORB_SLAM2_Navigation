@@ -118,12 +118,12 @@ int main(int argc, char **argv)
         orb_odom.pose.pose.orientation.y = igb.quaternion.y();
         orb_odom.pose.pose.orientation.z = igb.quaternion.z();
 
-        orb_odom.pose.covariance[0] = 0.001;
-        orb_odom.pose.covariance[7] = 0.001;
-        orb_odom.pose.covariance[14] = 0.001;
-        orb_odom.pose.covariance[21] = 0.001;
-        orb_odom.pose.covariance[28] = 0.001;
-        orb_odom.pose.covariance[35] = 0.001;
+        orb_odom.pose.covariance[0] = 0.00001;
+        orb_odom.pose.covariance[7] = 0.00001;
+        orb_odom.pose.covariance[14] = 0.00001;
+        orb_odom.pose.covariance[21] = 0.00001;
+        orb_odom.pose.covariance[28] = 0.00001;
+        orb_odom.pose.covariance[35] = 0.00001;
         if (SLAM.GetTrackingState() == 2) {
             orb_odom_pub.publish(orb_odom);
         }
@@ -218,9 +218,13 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
     this->v_transpose = T.topRightCorner(3,1);
     this->euler_angle = R.eulerAngles(2,1,0);
 
-    if( mpSLAM->GetRelocalization() )
+    // update odom according to VO
+    if( mpSLAM->GetRelocalization() || mpSLAM->GetKeyFrameCreated())
     {       
-        cout<<"Relocalization Happened!"<<endl;
+        if( mpSLAM->GetRelocalization() )
+            cout<<"Relocalization Happened! update odom"<<endl;
+        else
+            cout<<"KeyFrame has been created! update odom"<<endl;
         
         ros::Time current_time;
         current_time = ros::Time::now();
@@ -237,12 +241,12 @@ void ImageGrabber::GrabRGBD(const sensor_msgs::ImageConstPtr& msgRGB,const senso
         odom_reloc.pose.pose.orientation.y = this->quaternion.y();
         odom_reloc.pose.pose.orientation.z = this->quaternion.z();
 
-        odom_reloc.pose.covariance[0] = 0.01;
-        odom_reloc.pose.covariance[7] = 0.01;
-        odom_reloc.pose.covariance[14] = 0.01;
-        odom_reloc.pose.covariance[21] = 0.01;
-        odom_reloc.pose.covariance[28] = 0.01;
-        odom_reloc.pose.covariance[35] = 0.01;
+        odom_reloc.pose.covariance[0] = 0.00001;
+        odom_reloc.pose.covariance[7] = 0.00001;
+        odom_reloc.pose.covariance[14] = 0.00001;
+        odom_reloc.pose.covariance[21] = 0.00001;
+        odom_reloc.pose.covariance[28] = 0.00001;
+        odom_reloc.pose.covariance[35] = 0.00001;
         
         srv.request.odom_1 = odom_reloc;
         //reloc = true;

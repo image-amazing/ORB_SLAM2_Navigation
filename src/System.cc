@@ -497,4 +497,13 @@ bool System::GetRelocalization()
         return false;
 }
 
+bool System::GetKeyFrameCreated()
+{
+    if(this->mpTracker->mbKeyFrameCreated)
+        return true;
+    else
+        return false;
+}
+
+
 } //namespace ORB_SLAM

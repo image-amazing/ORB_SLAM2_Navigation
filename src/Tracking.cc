@@ -47,7 +47,7 @@ namespace ORB_SLAM2
 Tracking::Tracking(System *pSys, ORBVocabulary* pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap, KeyFrameDatabase* pKFDB, const string &strSettingPath, const int sensor):
     mState(NO_IMAGES_YET), mSensor(sensor), mbOnlyTracking(false), mbVO(false), mpORBVocabulary(pVoc),
     mpKeyFrameDB(pKFDB), mpInitializer(static_cast<Initializer*>(NULL)), mpSystem(pSys), mpViewer(NULL),
-    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbRelocalization(0)
+    mpFrameDrawer(pFrameDrawer), mpMapDrawer(pMapDrawer), mpMap(pMap), mnLastRelocFrameId(0), mbRelocalization(0), mbKeyFrameCreated(0)
 {
     // Load camera parameters from settings file
 
@@ -280,6 +280,8 @@ cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 void Tracking::Track()
 {
     mbRelocalization = false;
+    mbKeyFrameCreated = false;
+
     if(mState==NO_IMAGES_YET)
     {
         mState = NOT_INITIALIZED;
@@ -1149,11 +1151,12 @@ void Tracking::CreateNewKeyFrame()
                 if(vDepthIdx[j].first>mThDepth && nPoints>100)
                     break;
             }
+            mbKeyFrameCreated = true;
         }
     }
 
     mpLocalMapper->InsertKeyFrame(pKF);
-
+    
     mpLocalMapper->SetNotStop(false);
 
     mnLastKeyFrameId = mCurrentFrame.mnId;

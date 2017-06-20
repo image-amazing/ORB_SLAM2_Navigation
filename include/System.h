@@ -123,6 +123,7 @@ public:
     std::vector<cv::KeyPoint> GetTrackedKeyPointsUn();
 
     bool GetRelocalization();
+    bool GetKeyFrameCreated();
 
 private:
 
